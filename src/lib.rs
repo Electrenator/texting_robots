@@ -349,6 +349,14 @@ impl Robot {
     /// If there are difficulties parsing, which should be rare as the parser is quite
     /// forgiving, then an [InvalidRobots](Error::InvalidRobots) error is returned.
     pub fn new(agent: &str, txt: &[u8]) -> Result<Self, anyhow::Error> {
+        Robot::with_aliases(&[agent], txt)
+    }
+
+    /// Todo(liera); uwu
+    pub fn with_aliases(
+        agent_aliases: &[&str],
+        txt: &[u8],
+    ) -> Result<Self, anyhow::Error> {
         // Replace '\x00' with '\n'
         // This shouldn't be necessary but some websites are strange ...
         let txt = txt
@@ -367,8 +375,11 @@ impl Robot {
         };
 
         // All agents are case insensitive in `robots.txt`
-        let agent = agent.to_lowercase();
-        let mut agent = agent.as_str();
+        let mut agents: Vec<String> = Vec::with_capacity(agent_aliases.len());
+
+        for agent in agent_aliases.iter() {
+            agents.push(agent.to_lowercase());
+        }
 
         // Collect all sitemaps
         // Why? "The sitemap field isn't tied to any specific user agent and may be followed by all crawlers"
@@ -393,13 +404,13 @@ impl Robot {
 
         // Check if our crawler is explicitly referenced, otherwise we're catch all agent ("*")
         let references_our_bot = lines.iter().any(|x| match x {
-            Line::UserAgent(ua) => {
+            Line::UserAgent(ua) => agents.iter().any(|agent| {
                 agent.as_bytes() == ua.as_bstr().to_ascii_lowercase()
-            }
+            }),
             _ => false,
         });
         if !references_our_bot {
-            agent = "*";
+            agents = vec!["*".to_string()];
         }
 
         // Collect only the lines relevant to this user agent
@@ -426,7 +437,9 @@ impl Robot {
                     Line::UserAgent(ua) => ua.as_bstr(),
                     _ => unreachable!(),
                 };
-                if agent.as_bytes() == ua.as_bstr().to_ascii_lowercase() {
+                if agents.iter().any(|agent| {
+                    agent.as_bytes() == ua.as_bstr().to_ascii_lowercase()
+                }) {
                     capturing = true;
                 }
                 idx += 1;
