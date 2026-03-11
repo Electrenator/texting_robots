@@ -301,11 +301,22 @@ sitemap: https://example.com/sitemap.xml";
     fn test_robot_alias_empty() {
         let txt = "user-agent: *
         Disallow: /
+        user-agent:
+        user-agent: 
         ";
-        let agents = [""];
-        let robot = Robot::with_aliases(&agents, txt.as_bytes()).unwrap();
+        let variants_empty_agent = [vec![], vec![""]];
 
-        assert_eq!(robot.allowed("/allow/"), false);
+        for agent in variants_empty_agent {
+            let robot = Robot::with_aliases(&agent.as_slice(), txt.as_bytes())
+                .unwrap();
+
+            assert_eq!(
+                robot.allowed("/"),
+                false,
+                "Empty agent {:?} should still map to '*'",
+                agent
+            );
+        }
     }
 
     /// From Common Crawl burn test

@@ -352,7 +352,21 @@ impl Robot {
         Robot::with_aliases(&[agent], txt)
     }
 
-    /// Todo(liera); uwu
+    /// Construct a new Robot object specifically processed for all the given
+    /// user agents as a single robot. Just like <Robot::new> it extracts all
+    /// relevant rules from the `robots.txt` addressed to any of the aliases
+    /// as if it is all one robot and stores them internally. It defaults to
+    /// `*` entries when none of the agents names are found case-insensitively
+    /// within the `robots.txt`.
+    ///
+    /// Using robot aliases can be useful when your robot changed its name and
+    /// you want to stay backwards compatible with what people already have in
+    /// their `robots.txt` for your robot without having to parse the file
+    /// multiple times.
+    ///
+    /// # Errors
+    /// While it is forgiving parsing difficulties with given text can
+    /// result in a returned [InvalidRobots](Error::InvalidRobots) error.
     pub fn with_aliases(
         agent_aliases: &[&str],
         txt: &[u8],
@@ -378,7 +392,9 @@ impl Robot {
         let mut agents: Vec<String> = Vec::with_capacity(agent_aliases.len());
 
         for agent in agent_aliases.iter() {
-            agents.push(agent.to_lowercase());
+            if agent.len() > 0 {
+                agents.push(agent.to_lowercase());
+            }
         }
 
         // Collect all sitemaps
